@@ -1,0 +1,207 @@
+# ===============================
+# DEPENDENCIES
+# ===============================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===============================
+# ENVIRONMENT VARIABLES
+# ===============================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# ===============================
+# PROJECT SPECIFIC FILES
+# ===============================
+# Temporary processing directory
+temp/
+# Sample/test resume files (optional - uncomment if you don't want to track test files)
+# test-resumes/
+# sample-pdfs/
+
+# Uploads directory (if used for permanent storage)
+uploads/
+
+# Parsed resume data cache (if implemented)
+cache/
+.cache/
+
+# ===============================
+# LOGS & RUNTIME DATA
+# ===============================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ===============================
+# TESTING & COVERAGE
+# ===============================
+coverage/
+.nyc_output
+test-results/
+junit.xml
+
+# ===============================
+# BUILD & DIST
+# ===============================
+dist/
+build/
+*.tgz
+*.tar.gz
+
+# ===============================
+# PACKAGE MANAGERS
+# ===============================
+# npm
+.npm
+node_modules/
+package-lock.json*
+
+# Yarn
+.yarn-integrity
+.yarn/cache/
+.yarn/unplugged/
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# pnpm
+.pnpm-store/
+
+# Rush
+common/temp/
+
+# ===============================
+# BUNDLERS & BUILD TOOLS
+# ===============================
+.parcel-cache/
+.cache/
+.next/
+.nuxt/
+.vuepress/dist/
+.serverless/
+.fusebox/
+
+# ===============================
+# IDE & EDITORS
+# ===============================
+# VSCode
+.vscode/
+*.code-workspace
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# ===============================
+# OPERATING SYSTEMS
+# ===============================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===============================
+# SECURITY & CREDENTIALS
+# ===============================
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# API keys and secrets (additional safety)
+secrets/
+credentials/
+.secrets/
+
+# ===============================
+# TEMPORARY FILES
+# ===============================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+
+# ===============================
+# DOCUMENTATION BUILD
+# ===============================
+docs/_build/
+site/
+
+# ===============================
+# DOCKER
+# ===============================
+.dockerignore
+docker-compose.override.yml
+
+# ===============================
+# MONITORING & ANALYTICS
+# ===============================
+newrelic_agent.log
+.nyc_output
