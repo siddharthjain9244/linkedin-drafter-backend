@@ -37,12 +37,12 @@ export const createServer = () => {
   });
 
   // 404 handler
-  app.use('*', (req, res) => {
-    res.status(404).json({
-      error: 'Route not found',
-      message: `Route ${req.originalUrl} not found`
-    });
-  });
+  // app.use('*', (req, res) => {
+  //   res.status(404).json({
+  //     error: 'Route not found',
+  //     message: `Route ${req.originalUrl} not found`
+  //   });
+  // });
 
   return app;
 };

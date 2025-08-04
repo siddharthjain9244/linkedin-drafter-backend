@@ -1,7 +1,9 @@
 import fs from 'fs';
-import path from 'path';
+import path, { join } from 'path';
 import * as pdfjs from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { config } from '../config/server.js';
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { 
   formatFileSize, 
   cleanupTempFile, 
@@ -9,8 +11,13 @@ import {
 } from '../utils/resumeUtils.js';
 
 // Configure PDF.js worker path
-pdfjs.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs';
-
+// pdfjs.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+pdfjs.GlobalWorkerOptions.workerSrc = join(
+  __dirname,
+  '../node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs'
+);
 // ===============================
 // PDF PARSING HELPER FUNCTION
 // ===============================
@@ -18,9 +25,10 @@ pdfjs.GlobalWorkerOptions.workerSrc = './node_modules/pdfjs-dist/legacy/build/pd
 const parsePDFWithPDFJS = async (buffer) => {
   try {
     // Load the PDF document
+    const uint8Array = Uint8Array.from(buffer);
     const loadingTask = pdfjs.getDocument({
-      data: buffer,
-      standardFontDataUrl: './node_modules/pdfjs-dist/standard_fonts/',
+      data: uint8Array,
+      standardFontDataUrl: join(__dirname, '../node_modules/pdfjs-dist/standard_fonts/'),
     });
     
     const pdfDocument = await loadingTask.promise;
@@ -29,16 +37,25 @@ const parsePDFWithPDFJS = async (buffer) => {
     let fullText = '';
     
     // Extract text from each page
+    let allLinks = [];
     for (let pageNum = 1; pageNum <= numPages; pageNum++) {
       const page = await pdfDocument.getPage(pageNum);
       const textContent = await page.getTextContent();
-      
+     
       // Combine text items into a single string
       const pageText = textContent.items
         .map(item => item.str)
         .join(' ');
       
-      fullText += pageText + '\n';
+      fullText += pageText + '\n\n\n';
+
+      // 🔍 Extract links
+  const annotations = await page.getAnnotations({ intent: 'display' });
+  const pageLinks = annotations
+    .filter(a => a.subtype === 'Link' && a.url)
+    .map(a => a.url);
+
+  allLinks = allLinks.concat(pageLinks);
     }
     
     // Get document info
@@ -47,7 +64,8 @@ const parsePDFWithPDFJS = async (buffer) => {
     return {
       text: fullText.trim(),
       numPages: numPages,
-      info: info.info || {}
+      info: info.info || {},
+      links: allLinks
     };
     
   } catch (error) {
@@ -60,7 +78,7 @@ const parsePDFWithPDFJS = async (buffer) => {
 // MAIN CONTROLLER FUNCTIONS
 // ===============================
 
-const parseResume = async (req, res) => {
+export const parseResume = async (req, res) => {
   let tempFilePath = null;
   
   try {
@@ -116,7 +134,7 @@ const parseResume = async (req, res) => {
   }
 };
 
-const getStats = async (req, res) => {
+export const getStats = async (req, res) => {
   try {
     const stats = {
       success: true,
@@ -146,7 +164,7 @@ const getStats = async (req, res) => {
   }
 };
 
-const cleanupAllTempFiles = async (req, res) => {
+export const cleanupAllTempFiles = async (req, res) => {
   try {
     if (!fs.existsSync(config.tempDir)) {
       return res.json({
@@ -182,10 +200,4 @@ const cleanupAllTempFiles = async (req, res) => {
       message: error.message
     });
   }
-};
-
-module.exports = {
-  parseResume,
-  getStats,
-  cleanupAllTempFiles
 };
