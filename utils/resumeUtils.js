@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import axios from 'axios';
 
 // ===============================
 // FILE UTILITIES
@@ -286,44 +287,6 @@ export const parseJobLine = (line) => {
 // EDUCATION EXTRACTION
 // ===============================
 
-export const extractEducation = (text) => {
-  const educationKeywords = [
-    'education', 'academic', 'university', 'college', 'degree', 'bachelor',
-    'master', 'phd', 'doctorate', 'certification', 'diploma'
-  ];
-  
-  const stopKeywords = ['experience', 'skills', 'projects'];
-  
-  const educationData = extractTextBetweenKeywords(text, educationKeywords, stopKeywords);
-  
-  // Parse individual education entries
-  const education = parseEducationEntries(educationData);
-  
-  return {
-    raw: educationData,
-    parsed: education,
-    count: education.length
-  };
-};
-
-export const parseEducationEntries = (educationLines) => {
-  const education = [];
-  const degreeKeywords = ['bachelor', 'master', 'phd', 'doctorate', 'diploma', 'certificate'];
-  
-  for (const line of educationLines) {
-    if (degreeKeywords.some(keyword => line.toLowerCase().includes(keyword))) {
-      education.push({
-        degree: line.trim(),
-        institution: null, // Would need more sophisticated parsing
-        year: extractYear(line),
-        rawLine: line
-      });
-    }
-  }
-  
-  return education;
-};
-
 export const extractYear = (text) => {
   const yearPattern = /\b(19|20)\d{2}\b/g;
   const years = text.match(yearPattern);
@@ -375,14 +338,209 @@ export const extractSummary = (text) => {
 // MAIN DATA EXTRACTION ORCHESTRATOR
 // ===============================
 
-export const extractResumeData = (text) => {
+export const extractResumeData = async (text,links) => {
   const cleanedText = cleanText(text);
+//   const resumeExtractionPrompt = `
+// You are an intelligent parser. Read the resume text below and extract the following fields:
+
+// 1. Full Name of the candidate
+// 2. Current Role or Job Title
+// 3. Current Company
+// 4. Total Years of Professional Experience (estimate if exact is not stated)
+
+// Provide the response in the following  format:
+
+// {
+//   "userName": "",
+//   "currentRole": "",
+//   "currentCompany": "",
+//   "yearsOfExperience": ""
+// }
+
+// Resume Text:
+// ${text}
+// `;
+let currentdate = new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+const resumeExtractionPrompt = `You are an intelligent and accurate resume parser with strong date arithmetic capabilities.
+
+Given a resume text, extract structured information in strict JSON format.
+
+Specific Instructions:
+
+- For each job, calculate the \`duration\` between \`startDate\` and \`endDate\`.
+- If \`endDate\` is missing or set as "Present", use today's date.
+- Format \`duration\` as "X years Y months" (e.g., "2 years 3 months").
+- Then, compute the candidate's \`yearsOfExperience\` as the **sum of durations** of all jobs.
+- If date ranges are unclear or vague, use best-effort estimation.
+
+Return the following JSON structure:
+
+{
+  "userName": "",                          // Full name
+  "currentRole": "",                       // Most recent or current job title
+  "currentCompany": "",                    // Company for currentRole
+  "yearsOfExperience": "",                 // Sum of all job durations (e.g., "4 years 2 months") if end date is present then calculate duration as ${currentdate} - start date
+  "education": [
+    {
+      "degree": "",
+      "field": "",
+      "institution": "",
+      "startYear": "",
+      "endYear": ""
+    }
+  ],
+  "jobHistory": [
+    {
+      "title": "",
+      "company": "",
+      "startDate": "MMM yyyy",             // e.g., "Jan 2020"
+      "endDate": "MMM yyyy or Present",    // e.g., "May 2023" or "Present" if end date is "Present" then calculate duration as ${currentdate} - start date
+      "duration": "",                      // e.g., "3 years 5 months"
+      "location": "",
+      "responsibilities": "",
+      "skillsUsed": [""]
+    }
+  ],
+  "skills": [""],
+  "projects": [
+    {
+      "title": "",
+      "description": "",
+      "technologiesUsed": [""]
+    }
+  ],
+  "achievements": [""],
+  "links": {
+    "linkedin": "",
+    "github": "",
+    "leetcode": "",
+    "hackerrank": "",
+    "codechef": "",
+    "codeforces": "",
+    "portfolio": "",
+  }
+}
+
+Resume Text:
+${text}
+
+Links:
+${links}
+`
+const payload = {
+  contents: [
+    {
+      role: "user",
+      parts: [
+        {
+          text: resumeExtractionPrompt
+        }
+      ]
+    }
+  ]
+};
+let geminiApiKey = process.env.GEMINI_API_KEY;
+const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+const response = await axios.post(apiUrl, payload,{
+  headers: {
+    'Content-Type': 'application/json'
+  },
+  timeout: 60000
+});
+
+  const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+  if(!responseText){
+    throw new Error('No response from Gemini API');
+  }  
+  const cleanedJsonString = responseText
+  .replace(/^```json\n/, '')  // Remove starting markdown
+  .replace(/\n```$/, '')      // Remove ending markdown
+  .trim();// remove any whitespace
+
+// Step 3: Parse JSON
+const parsedData = JSON.parse(cleanedJsonString);
+console.log(parsedData);
+
+// console.log(data);
   
   return {
-    contact: extractContactInfo(cleanedText),
-    skills: extractSkills(cleanedText),
-    experience: extractExperience(cleanedText),
-    education: extractEducation(cleanedText),
-    summary: extractSummary(cleanedText)
+    userName: parsedData.userName,
+    currentRole: parsedData.currentRole,
+    currentCompany: parsedData.currentCompany,
+    yearsOfExperience: parsedData.yearsOfExperience,
+    education: parsedData.education,
+    jobHistory: parsedData.jobHistory,
+    skills: parsedData.skills,
+    projects: parsedData.projects,
+    achievements: parsedData.achievements,
+    links: parsedData.links
   };
 };
+
+export const generateOutreachMessage = async (data,recruiterName, companyName, role,jobDescription) => {
+      try {
+        const { userName, currentRole, currentCompany, yearsOfExperience, education, jobHistory, skills, projects, achievements, links } = data;
+        const prompt = `
+    You are a career advisor. Write a short, professional, and personalized  outreach message from ${userName} (currently ${currentRole} at ${currentCompany}) to ${recruiterName} at ${companyName} about the ${role} position.
+
+    Guidelines:
+    - Be polite and engaging.
+    - Address the recruiter by name and mention the role and company explicitly.
+    - Highlight key skills or achievements from the candidate's experience.
+    - Use only the provided resume data; do not invent details.
+    - If there’s no strong match, write a general but polite message showing interest.
+
+    Candidate Profile:
+    Name: ${userName}
+    Current Role: ${currentRole}
+    Current Company: ${currentCompany}
+    Experience: ${yearsOfExperience}
+    Education: ${JSON.stringify(education)}
+    Job History: ${JSON.stringify(jobHistory)}
+    Skills: ${skills.join(', ')}
+    Projects: ${JSON.stringify(projects)}
+    Achievements: ${achievements.join('; ')}
+    Links: ${JSON.stringify(links)}
+
+    Job Description:
+    ${jobDescription}
+
+    Draft the outreach message starting with "Hi ${recruiterName},".
+    `;
+    const payload = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: prompt
+            }
+          ]
+        }
+      ]
+    }
+    let geminiApiKey = process.env.GEMINI_API_KEY;
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+    const response = await axios.post(apiUrl, payload,{
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 60000
+    });
+    const responseText = response.data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+    if(!responseText){
+      throw new Error('No response from Gemini API');
+    }
+    let cleanedJsonString = responseText
+    .replace(/^```json\n/, '')  // Remove starting markdown
+    .replace(/\n```$/, '')      // Remove ending markdown
+    .trim();// remove any whitespace
+    // const parsedData = JSON.parse(cleanedJsonString);
+    return cleanedJsonString;
+
+    } catch (error) {
+      console.error('Error generating outreach message:', error);
+      throw error
+    }  
+}

@@ -17,7 +17,19 @@ export const createServer = () => {
 
   // Middleware
   app.use(helmet());
-  app.use(cors());
+  
+  // CORS configuration
+  const corsOptions = {
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL || 'https://linkedin-drafter.onrender.com'  // Replace with your frontend URL
+      : true, // Allow all origins in development
+    credentials: true, // Allow cookies/auth headers
+    optionsSuccessStatus: 200, // For legacy browser support
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  };
+  
+  app.use(cors(corsOptions));
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 

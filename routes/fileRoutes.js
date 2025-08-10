@@ -1,6 +1,7 @@
 import express from 'express';
-import { parseResume, getStats, cleanupAllTempFiles } from '../controllers/resumeParserController.js';
+import { parseResume, getStats, cleanupAllTempFiles, analyseResumeForOutreach } from '../controllers/resumeParserController.js';
 import { upload, handleUploadError } from '../middleware/upload.js';
+import responseHandler from '../utils/responseUtils.js';
 
 const router = express.Router();
 
@@ -41,7 +42,8 @@ router.get('/', (req, res) => {
 router.post('/api/parse-resume', 
   upload.single('resume'), 
   handleUploadError,
-  parseResume
+  parseResume,
+  responseHandler
 );
 
 // ===============================
@@ -50,6 +52,8 @@ router.post('/api/parse-resume',
 
 router.get('/api/stats', getStats);
 router.delete('/api/cleanup', cleanupAllTempFiles);
+
+router.post('/api/analyseResumeForOutreach', analyseResumeForOutreach, responseHandler);
 
 // ===============================
 // HEALTH CHECK ENDPOINT

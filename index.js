@@ -46,5 +46,15 @@ process.on('SIGINT', () => {
   process.exit(0);
 });
 
+process.on('uncaughtException', (error, origin) => {
+  console.error('uncaughtException occurred:: Exception origin:: ', origin);
+  console.error('uncaughtException occurred:: Error:: ', error);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('unhandledRejection occurred:: Unhandled Rejection at:: ', promise);
+  console.error('unhandledRejection occurred:: Error:: ', reason);
+});
+
 // Start the server
 startServer();
