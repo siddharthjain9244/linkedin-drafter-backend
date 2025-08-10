@@ -30,6 +30,58 @@ export const createServer = () => {
   };
   
   app.use(cors(corsOptions));
+  
+  // Server-side origin validation middleware (blocks non-browser requests)
+  app.use((req, res, next) => {
+    const origin = req.get('Origin') || req.get('Referer');
+    const userAgent = req.get('User-Agent') || '';
+    
+    // Skip validation for development environment
+    if (process.env.NODE_ENV !== 'production') {
+      return next();
+    }
+    
+    // Allow health check endpoint for monitoring services
+    if (req.path === '/api/health' || req.path === '/health') {
+      return next();
+    }
+    
+    // Block requests without proper origin (like Postman, curl, etc.)
+    if (!origin) {
+      console.log(`🚫 Blocked request with no origin/referer. User-Agent: ${userAgent}, Path: ${req.path}`);
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Direct API access not allowed. Please use the web application.'
+      });
+    }
+    
+    // Extract origin domain from URL
+    let originDomain;
+    try {
+      originDomain = new URL(origin).origin;
+    } catch (e) {
+      console.log(`🚫 Blocked request with invalid origin: ${origin}`);
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Invalid origin'
+      });
+    }
+    let allowedOrigins = [
+      'https://linkedin-drafter.onrender.com',
+    ];
+    // Check if origin is allowed
+    if (!allowedOrigins.includes(originDomain)) {
+      console.log(`🚫 Blocked request from unauthorized origin: ${originDomain}`);
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Unauthorized origin',
+        origin: originDomain
+      });
+    }
+    
+    next();
+  });
+  
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
 
