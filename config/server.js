@@ -55,6 +55,39 @@ export const createServer = () => {
       });
     }
     
+    // Additional security: Check for browser-specific headers
+    const secFetchSite = req.get('sec-fetch-site');
+    const secFetchMode = req.get('sec-fetch-mode');
+    
+    // These headers are automatically added by browsers and hard to fake in curl
+    if (!secFetchSite || !secFetchMode) {
+      console.log(`🚫 Blocked request missing browser security headers. User-Agent: ${userAgent}`);
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Invalid request headers'
+      });
+    }
+    
+    // Check if it's a legitimate cross-site request from browser
+    if (secFetchSite !== 'cross-site' || secFetchMode !== 'cors') {
+      console.log(`🚫 Blocked request with invalid fetch headers. Site: ${secFetchSite}, Mode: ${secFetchMode}`);
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'Invalid request context'
+      });
+    }
+    
+    // Optional: API Key validation (uncomment to enable)
+    // const apiKey = req.get('X-API-Key');
+    // const validApiKey = process.env.API_KEY || 'your-secret-api-key';
+    // if (apiKey !== validApiKey) {
+    //   console.log(`🚫 Blocked request with invalid API key`);
+    //   return res.status(403).json({
+    //     error: 'Access denied',
+    //     message: 'Invalid API key'
+    //   });
+    // }
+    
     // Extract origin domain from URL
     let originDomain;
     try {
