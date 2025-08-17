@@ -1,5 +1,6 @@
 import { createServer, config } from './config/server.js';
 import resumeRoutes from './routes/fileRoutes.js';
+import { initDB } from './utils/dbUtils.js';
 
 // Create Express application
 const app = createServer();
@@ -8,8 +9,9 @@ const app = createServer();
 app.use('/', resumeRoutes);
 
 // Start server
-const startServer = () => {
+const startServer = async() => {
   try {
+    await initDB();
     app.listen(config.port, () => {
       console.log('🚀 Resume Parser API Started');
       console.log(`📊 Environment: ${config.nodeEnv}`);
